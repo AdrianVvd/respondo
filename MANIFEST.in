@@ -1,0 +1,7 @@
+include README.md
+include pyproject.toml
+recursive-include src *.py
+exclude AGENTS.md
+exclude CLAUDE.md
+exclude plan.md
+recursive-exclude src demo_*.py

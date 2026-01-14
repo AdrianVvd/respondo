@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "respondo"
+version = "0.4.0"
+description = "Scraping-friendly HTTP, string parsing, JSON helpers, and AI parsing."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{ name = "Respondo Maintainers" }]
+keywords = ["http", "scraping", "text", "json", "utilities", "llm", "ai"]
+license = "MIT"
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Internet :: WWW/HTTP",
+  "Topic :: Text Processing",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+py-modules = ["respondo", "text", "jsonutil", "response", "htmlutil", "aiutil"]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["demo_*.py"]

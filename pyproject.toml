@@ -4,23 +4,44 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "respondo"
-version = "0.4.0"
-description = "Scraping-friendly HTTP, string parsing, JSON helpers, and AI parsing."
+version = "0.5.0"
+description = "Zero-dependency Python library for text parsing, encoding, hashing, and web scraping utilities."
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [{ name = "Respondo Maintainers" }]
-keywords = ["http", "scraping", "text", "json", "utilities", "llm", "ai"]
+keywords = [
+  "http", "scraping", "parsing", "text", "json", "html",
+  "encoding", "hashing", "crypto", "utilities", "llm", "ai",
+  "captcha", "bot-protection", "web-scraping"
+]
 license = "MIT"
+license-files = ["LICENSE"]
 classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Topic :: Internet :: WWW/HTTP",
   "Topic :: Text Processing",
+  "Topic :: Software Development :: Libraries :: Python Modules",
 ]
+
+[project.urls]
+Homepage = "https://github.com/adrianespinoza1/respondo"
+Repository = "https://github.com/adrianespinoza1/respondo"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-py-modules = ["respondo", "text", "jsonutil", "response", "htmlutil", "aiutil"]
+py-modules = ["respondo"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["textparse*", "jsonparse*", "responseutil*", "htmlparse*", "ai*", "botprotection*", "cryptoutil*"]
 
 [tool.setuptools.exclude-package-data]
-"*" = ["demo_*.py"]
+"*" = ["demo_*.py", "*.pyc", "__pycache__"]

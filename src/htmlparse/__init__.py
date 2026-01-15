@@ -1,12 +1,28 @@
+"""
+HTML Parsing and Extraction Module
+
+Provides HTML parsing, text extraction, form/table parsing, and HTML-to-Markdown conversion.
+No external dependencies - uses stdlib only (html.parser, re, json, urllib.parse).
+"""
+
 import json
 import re
 from html import unescape as html_unescape
 from html.parser import HTMLParser
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urljoin, urlparse
 
 
 def strip_scripts_styles(html_text: str) -> str:
+    """
+    Remove script and style tags from HTML, returning clean text.
+
+    Args:
+        html_text: HTML content
+
+    Returns:
+        Text content with scripts, styles, and tags removed
+    """
     text = re.sub(r"(?is)<script.*?>.*?</script>", " ", html_text)
     text = re.sub(r"(?is)<style.*?>.*?</style>", " ", text)
     text = re.sub(r"(?s)<[^>]+>", " ", text)
@@ -14,6 +30,17 @@ def strip_scripts_styles(html_text: str) -> str:
 
 
 def get_text(html_text: str, separator: str = " ", strip: bool = True) -> str:
+    """
+    Extract visible text from HTML.
+
+    Args:
+        html_text: HTML content
+        separator: Text separator (default: space)
+        strip: Whether to strip whitespace
+
+    Returns:
+        Extracted text content
+    """
     cleaned = strip_scripts_styles(html_text)
     if not separator:
         return cleaned
@@ -24,9 +51,9 @@ def get_text(html_text: str, separator: str = " ", strip: bool = True) -> str:
 class _LinkParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
-        self.links: list[str] = []
+        self.links: List[str] = []
 
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, Optional[str]]]) -> None:
+    def handle_starttag(self, tag: str, attrs: List[tuple[str, Optional[str]]]) -> None:
         attr_map = {k.lower(): v for k, v in attrs}
         href = attr_map.get("href")
         src = attr_map.get("src")
@@ -36,11 +63,28 @@ class _LinkParser(HTMLParser):
             self.links.append(src)
 
 
-def extract_links(html_text: str, base: str | None = None, same_host: bool = False, extensions: Optional[list[str]] = None) -> list[str]:
+def extract_links(
+    html_text: str,
+    base: Optional[str] = None,
+    same_host: bool = False,
+    extensions: Optional[List[str]] = None
+) -> List[str]:
+    """
+    Extract all links (href and src) from HTML.
+
+    Args:
+        html_text: HTML content
+        base: Base URL for resolving relative links
+        same_host: Only include links from same host
+        extensions: Filter by file extensions
+
+    Returns:
+        List of extracted URLs
+    """
     parser = _LinkParser()
     parser.feed(html_text)
     urls = parser.links
-    resolved: list[str] = []
+    resolved: List[str] = []
     for u in urls:
         full = urljoin(base, u) if base else u
         if same_host and base:
@@ -56,14 +100,14 @@ def extract_links(html_text: str, base: str | None = None, same_host: bool = Fal
 class _FormParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
-        self.forms: list[dict[str, Any]] = []
-        self._current_form: Optional[dict[str, Any]] = None
+        self.forms: List[Dict[str, Any]] = []
+        self._current_form: Optional[Dict[str, Any]] = None
         self._current_textarea: Optional[str] = None
-        self._textarea_buffer: list[str] = []
+        self._textarea_buffer: List[str] = []
         self._in_select: Optional[str] = None
-        self._select_options: list[tuple[str, bool]] = []
+        self._select_options: List[tuple[str, bool]] = []
 
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, Optional[str]]]) -> None:
+    def handle_starttag(self, tag: str, attrs: List[tuple[str, Optional[str]]]) -> None:
         attr_map = {k.lower(): v for k, v in attrs}
         if tag.lower() == "form":
             self._current_form = {
@@ -116,7 +160,17 @@ class _FormParser(HTMLParser):
             self._textarea_buffer.append(data)
 
 
-def extract_forms(html_text: str, base: str | None = None) -> list[dict[str, Any]]:
+def extract_forms(html_text: str, base: Optional[str] = None) -> List[Dict[str, Any]]:
+    """
+    Extract all forms with their fields from HTML.
+
+    Args:
+        html_text: HTML content
+        base: Base URL for resolving action URLs
+
+    Returns:
+        List of form dicts with 'action', 'method', 'fields'
+    """
     parser = _FormParser()
     parser.feed(html_text)
     forms = parser.forms
@@ -131,13 +185,13 @@ def extract_forms(html_text: str, base: str | None = None) -> list[dict[str, Any
 class _TableParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
-        self.tables: list[list[list[str]]] = []
-        self._current_table: Optional[list[list[str]]] = None
-        self._current_row: Optional[list[str]] = None
+        self.tables: List[List[List[str]]] = []
+        self._current_table: Optional[List[List[str]]] = None
+        self._current_row: Optional[List[str]] = None
         self._capture_cell: bool = False
-        self._cell_buffer: list[str] = []
+        self._cell_buffer: List[str] = []
 
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, Optional[str]]]) -> None:
+    def handle_starttag(self, tag: str, attrs: List[tuple[str, Optional[str]]]) -> None:
         if tag.lower() == "table":
             self._current_table = []
         elif tag.lower() == "tr" and self._current_table is not None:
@@ -163,19 +217,28 @@ class _TableParser(HTMLParser):
             self._cell_buffer.append(data)
 
 
-def extract_tables(html_text: str) -> list[dict[str, Any]]:
+def extract_tables(html_text: str) -> List[Dict[str, Any]]:
+    """
+    Extract tables from HTML as structured data.
+
+    Args:
+        html_text: HTML content
+
+    Returns:
+        List of table dicts with 'headers' and 'rows'
+    """
     parser = _TableParser()
     parser.feed(html_text)
-    result: list[dict[str, Any]] = []
+    result: List[Dict[str, Any]] = []
     for table in parser.tables:
         if not table:
             continue
-        headers: list[str] = []
+        headers: List[str] = []
         rows_data = table
         if table and len(table[0]) > 0:
             headers = table[0]
             rows_data = table[1:]
-        rows: list[Any] = []
+        rows: List[Any] = []
         if headers:
             for row in rows_data:
                 row_dict = {}
@@ -188,8 +251,17 @@ def extract_tables(html_text: str) -> list[dict[str, Any]]:
     return result
 
 
-def json_in_html(html_text: str) -> list[Any]:
-    results: list[Any] = []
+def json_in_html(html_text: str) -> List[Any]:
+    """
+    Extract JSON objects embedded in HTML (script tags and inline assignments).
+
+    Args:
+        html_text: HTML content
+
+    Returns:
+        List of parsed JSON objects
+    """
+    results: List[Any] = []
     script_json = re.findall(
         r'<script[^>]*type=["\']application/json["\'][^>]*>(.*?)</script>',
         html_text,
@@ -211,12 +283,12 @@ def json_in_html(html_text: str) -> list[Any]:
 class _MetaParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
-        self.meta: dict[str, str] = {}
+        self.meta: Dict[str, str] = {}
         self.title: str = ""
         self._in_title: bool = False
-        self._title_buffer: list[str] = []
+        self._title_buffer: List[str] = []
 
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, Optional[str]]]) -> None:
+    def handle_starttag(self, tag: str, attrs: List[tuple[str, Optional[str]]]) -> None:
         attr_map = {k.lower(): v or "" for k, v in attrs}
         if tag.lower() == "title":
             self._in_title = True
@@ -237,24 +309,27 @@ class _MetaParser(HTMLParser):
             self._title_buffer.append(data)
 
 
-def extract_meta(html_text: str) -> dict[str, str]:
+def extract_meta(html_text: str) -> Dict[str, str]:
     """
     Extract meta tags from HTML.
-    Returns dict with title, description, og:title, og:description, og:image, etc.
+
+    Args:
+        html_text: HTML content
+
+    Returns:
+        Dict with title, description, og:*, twitter:*, etc.
     """
     parser = _MetaParser()
     try:
         parser.feed(html_text)
     except Exception:
         pass
-    result: dict[str, str] = {}
+    result: Dict[str, str] = {}
     if parser.title:
         result["title"] = parser.title
-    # Common meta tags
     for key in ["description", "keywords", "author", "viewport", "robots"]:
         if key in parser.meta:
             result[key] = parser.meta[key]
-    # Open Graph tags
     for key, val in parser.meta.items():
         if key.startswith("og:") or key.startswith("twitter:"):
             result[key] = val
@@ -264,9 +339,9 @@ def extract_meta(html_text: str) -> dict[str, str]:
 class _ImageParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
-        self.images: list[dict[str, str]] = []
+        self.images: List[Dict[str, str]] = []
 
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, Optional[str]]]) -> None:
+    def handle_starttag(self, tag: str, attrs: List[tuple[str, Optional[str]]]) -> None:
         if tag.lower() == "img":
             attr_map = {k.lower(): v or "" for k, v in attrs}
             src = attr_map.get("src", "")
@@ -280,10 +355,16 @@ class _ImageParser(HTMLParser):
                 })
 
 
-def extract_images(html_text: str, base: str | None = None) -> list[dict[str, str]]:
+def extract_images(html_text: str, base: Optional[str] = None) -> List[Dict[str, str]]:
     """
     Extract all images from HTML with their attributes.
-    Returns list of dicts with src, alt, title, width, height.
+
+    Args:
+        html_text: HTML content
+        base: Base URL for resolving relative src
+
+    Returns:
+        List of image dicts with src, alt, title, width, height
     """
     parser = _ImageParser()
     try:
@@ -300,13 +381,13 @@ def extract_images(html_text: str, base: str | None = None) -> list[dict[str, st
 class _MarkdownConverter(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
-        self.output: list[str] = []
-        self._list_stack: list[str] = []
+        self.output: List[str] = []
+        self._list_stack: List[str] = []
         self._link_href: str = ""
         self._in_pre: bool = False
         self._skip: bool = False
 
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, Optional[str]]]) -> None:
+    def handle_starttag(self, tag: str, attrs: List[tuple[str, Optional[str]]]) -> None:
         tag = tag.lower()
         attr_map = {k.lower(): v or "" for k, v in attrs}
 
@@ -390,7 +471,6 @@ class _MarkdownConverter(HTMLParser):
         if self._in_pre:
             self.output.append(data)
         else:
-            # Collapse whitespace for non-pre content
             text = " ".join(data.split())
             if text:
                 self.output.append(text)
@@ -399,7 +479,14 @@ class _MarkdownConverter(HTMLParser):
 def html_to_markdown(html_text: str) -> str:
     """
     Convert HTML to Markdown.
+
     Supports headings, paragraphs, links, images, lists, bold, italic, code, blockquotes.
+
+    Args:
+        html_text: HTML content
+
+    Returns:
+        Markdown string
     """
     if not html_text:
         return ""
@@ -409,6 +496,18 @@ def html_to_markdown(html_text: str) -> str:
     except Exception:
         pass
     result = "".join(converter.output)
-    # Clean up extra whitespace
     result = re.sub(r"\n{3,}", "\n\n", result)
     return result.strip()
+
+
+__all__ = [
+    "strip_scripts_styles",
+    "get_text",
+    "extract_links",
+    "extract_forms",
+    "extract_tables",
+    "json_in_html",
+    "extract_meta",
+    "extract_images",
+    "html_to_markdown",
+]

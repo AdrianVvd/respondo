@@ -1,10 +1,18 @@
+"""
+JSON Utilities Module
+
+Provides JSON parsing, extraction, and safe nested access.
+No external dependencies - uses stdlib only (json).
+"""
+
 import json
-from typing import Any
+from typing import Any, List
 
 
-def _json_segments(text: str) -> list[tuple[int, int]]:
-    segments: list[tuple[int, int]] = []
-    stack: list[str] = []
+def _json_segments(text: str) -> List[tuple[int, int]]:
+    """Find JSON object/array boundaries in text."""
+    segments: List[tuple[int, int]] = []
+    stack: List[str] = []
     start = -1
     in_string = False
     escaped = False
@@ -42,7 +50,16 @@ def _json_segments(text: str) -> list[tuple[int, int]]:
     return segments
 
 
-def find_first_json(text: str) -> Any:
+def find_first(text: str) -> Any:
+    """
+    Find and parse the first JSON object or array in text.
+
+    Args:
+        text: Text that may contain embedded JSON
+
+    Returns:
+        Parsed JSON object/array, or None if not found
+    """
     for start, end in _json_segments(text):
         chunk = text[start:end]
         try:
@@ -52,8 +69,17 @@ def find_first_json(text: str) -> Any:
     return None
 
 
-def find_all_json(text: str) -> list[Any]:
-    items: list[Any] = []
+def find_all(text: str) -> List[Any]:
+    """
+    Find and parse all JSON objects and arrays in text.
+
+    Args:
+        text: Text that may contain embedded JSON
+
+    Returns:
+        List of parsed JSON objects/arrays
+    """
+    items: List[Any] = []
     for start, end in _json_segments(text):
         chunk = text[start:end]
         try:
@@ -63,7 +89,27 @@ def find_all_json(text: str) -> list[Any]:
     return items
 
 
-def json_get(obj: Any, *path: Any) -> Any:
+def get(obj: Any, *path: Any) -> Any:
+    """
+    Safely access nested JSON properties.
+
+    Never throws - returns None for any missing key/index.
+
+    Args:
+        obj: JSON object (dict or list)
+        *path: Keys (str) or indices (int) to traverse
+
+    Returns:
+        Value at path, or None if not found
+
+    Examples:
+        >>> get({"user": {"name": "Alice"}}, "user", "name")
+        'Alice'
+        >>> get([{"id": 1}], 0, "id")
+        1
+        >>> get({}, "missing", "key")
+        None
+    """
     current = obj
     for part in path:
         if isinstance(part, str):
@@ -79,3 +125,20 @@ def json_get(obj: Any, *path: Any) -> Any:
         else:
             return None
     return current
+
+
+# Aliases for backward compatibility
+find_first_json = find_first
+find_all_json = find_all
+json_get = get
+
+
+__all__ = [
+    "find_first",
+    "find_all",
+    "get",
+    # Aliases
+    "find_first_json",
+    "find_all_json",
+    "json_get",
+]

@@ -10,9 +10,9 @@
 [![Downloads](https://img.shields.io/pypi/dm/respondo?color=fbbf24&style=flat-square)](https://pypi.org/project/respondo/)
 [![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white&style=flat-square)](https://discord.gg/n9cdFy7ngN)
 
-**Zero dependencies** · **Type hints** · **10 AI providers** · **Structured outputs**
+**Zero dependencies** · **Type hints** · **10 AI providers** · **199 functions**
 
-[Installation](#installation) · [Quick Start](#quick-start) · [Documentation](#documentation) · [AI Parsing](#-ai-parsing)
+[Installation](#installation) · [Quick Start](#quick-start) · [Documentation](#documentation) · [AI Parsing](#ai-parsing)
 
 </div>
 
@@ -51,48 +51,75 @@ parse_ai("Extract the price", "The item costs $29.99", provider="openai")
 ### Text Extraction
 
 ```python
-from respondo import between, betweens, regex_first, regex_all
+from respondo import between, betweens, before, after, split_first
 
 # Extract between delimiters
 between("Hello [World]!", "[", "]")           # => "World"
 betweens("[a][b][c]", "[", "]")               # => ["a", "b", "c"]
 
-# Regex extraction (returns capture group if present)
-regex_first("Price: $42.99", r"\$([\d.]+)")   # => "42.99"
-regex_all("<id>1</id><id>2</id>", r"<id>(\d+)</id>")  # => ["1", "2"]
+# Before/after extraction
+before("user@example.com", "@")               # => "user"
+after("user@example.com", "@")                # => "example.com"
+
+# Split utilities
+split_first("a/b/c", "/")                     # => ("a", "b/c")
 ```
 
-### Extract Emails, URLs & Numbers
+### String Utilities
 
 ```python
-from respondo import extract_emails, extract_urls, extract_numbers
+from respondo import to_snake_case, slugify, truncate, reverse, pad_left
 
-text = "Contact john@example.com or visit https://example.com. Price: $99.99"
-
-extract_emails(text)   # => ["john@example.com"]
-extract_urls(text)     # => ["https://example.com"]
-extract_numbers(text)  # => ["$99.99"]
+to_snake_case("helloWorld")      # => "hello_world"
+to_camel_case("hello_world")     # => "helloWorld"
+slugify("Hello World!")          # => "hello-world"
+truncate("hello world", 8)       # => "hello..."
+reverse("hello")                 # => "olleh"
+pad_left("42", 5, "0")           # => "00042"
 ```
 
-### Validation
+### Safe Parsing
 
 ```python
-from respondo import is_valid_email, is_valid_url, is_valid_json
+from respondo import parse_int, parse_float, parse_bool
 
-is_valid_email("test@example.com")  # => True
-is_valid_url("https://example.com") # => True
-is_valid_json('{"key": "value"}')   # => True
+parse_int("42")           # => 42
+parse_int("invalid", -1)  # => -1 (default)
+parse_float("3.14")       # => 3.14
+parse_bool("yes")         # => True
 ```
 
-### Text Utilities
+### Encoding & Hashing
 
 ```python
-from respondo import normalize_space, clean_text, strip_tags, unescape_html
+from respondo import sha256, md5, b64_encode, hex_encode, hmac_sha256
 
-normalize_space("  hello   world  ")          # => "hello world"
-clean_text("Cafe - Recipe's")                 # => "Cafe - Recipe's" (normalized)
-strip_tags("<p>Hello <b>World</b></p>")       # => "Hello World"
-unescape_html("&lt;div&gt;")                  # => "<div>"
+sha256("hello")                    # => "2cf24dba5fb0a30e..."
+md5("hello")                       # => "5d41402abc4b2a76..."
+b64_encode("hello")                # => "aGVsbG8="
+hex_encode("hello")                # => "68656c6c6f"
+hmac_sha256("secret", "message")   # => "..."
+```
+
+### UUID & Random
+
+```python
+from respondo import uuid4, random_hex, random_string, random_urlsafe
+
+uuid4()                # => "550e8400-e29b-41d4-..."
+random_hex(16)         # => "a1b2c3d4e5f67890"
+random_string(10)      # => "xK9mP2nQ4r"
+random_urlsafe(16)     # => "Yx2kM9pN_3qR-w5z"
+```
+
+### Timestamps
+
+```python
+from respondo import timestamp, from_timestamp, to_timestamp
+
+timestamp()                           # => 1705320000
+from_timestamp(1705320000)            # => "2024-01-15T12:00:00Z"
+to_timestamp("2024-01-15T12:00:00Z")  # => 1705320000
 ```
 
 ---
@@ -195,29 +222,15 @@ resp.is_client_error()   # => False (400-499)
 resp.text                # => '{"success": true}'
 resp.json()              # => {"success": True}
 
+# Save to file
+resp.save("output.html")         # Save raw body
+resp.save_text("output.txt")     # Save decoded text
+resp.save_json("output.json")    # Save formatted JSON
+resp.save_zip("output.zip")      # Save as compressed zip
+
 # Headers (case-insensitive)
 resp.header("content-type")       # => "application/json"
 resp.content_type()               # => ("application/json", "")
-
-# Cookie parsing
-resp.cookies()
-# => [{"name": "session", "value": "abc", "attrs": {"path": "/", "httponly": ""}}]
-```
-
----
-
-### Encoding Utilities
-
-```python
-from respondo import url_encode, url_decode, b64_encode, b64_decode
-
-# URL encoding
-url_encode({"q": "hello world", "page": 1})   # => "q=hello+world&page=1"
-url_decode("a=1&b=2&b=3")                     # => {"a": ["1"], "b": ["2", "3"]}
-
-# Base64
-b64_encode("hello")                           # => "aGVsbG8="
-b64_decode("aGVsbG8=")                        # => b"hello"
 ```
 
 ---
@@ -282,18 +295,6 @@ decode_jwt(tokens[0])  # => {"header": {"alg": "HS256"}, "payload": {"sub": "123
 extract_bearer_tokens("Authorization: Bearer abc123")  # => ["abc123"]
 ```
 
-### Contact Info Extraction
-
-```python
-from respondo import extract_phone_numbers, extract_dates
-
-extract_phone_numbers("Call +1 (555) 123-4567 or +44 20 7946 0958")
-# => ["+1 (555) 123-4567", "+44 20 7946 0958"]
-
-extract_dates("Date: 2024-01-15 and January 15, 2024")
-# => ["2024-01-15", "January 15, 2024"]
-```
-
 ---
 
 ### Captcha Extraction & Detection
@@ -324,6 +325,19 @@ extract_captcha_params(html)
 # => {"recaptcha": [...], "turnstile": [...], "hcaptcha": [...]}
 ```
 
+### Bot Protection Detection
+
+```python
+from respondo import detect_protection_system, detect_all_protection_systems
+
+# Detect primary protection
+detect_protection_system(html)  # => "cloudflare" / "datadome" / "akamai" / etc.
+
+# Detect all protection systems
+detect_all_protection_systems(html)
+# => ["cloudflare", "recaptcha"]
+```
+
 ### Network/Identifier Extraction
 
 ```python
@@ -338,26 +352,6 @@ extract_uuids("ID: 550e8400-e29b-41d4-a716-...")     # => ["550e8400-..."]
 extract_mac_addresses("MAC: 00:1A:2B:3C:4D:5E")      # => ["00:1A:2B:3C:4D:5E"]
 ```
 
-### API/Endpoint Extraction
-
-```python
-from respondo import extract_api_endpoints, extract_graphql_endpoints, extract_websocket_urls
-
-extract_api_endpoints(js_code)      # => ["/api/v1/users", "https://api.example.com/v2/data"]
-extract_graphql_endpoints(html)     # => ["/graphql", "/api/gql"]
-extract_websocket_urls(html)        # => ["wss://example.com/socket"]
-```
-
-### Media URL Extraction
-
-```python
-from respondo import extract_video_urls, extract_audio_urls, extract_stream_urls
-
-extract_video_urls(html)   # => ["https://cdn.com/video.mp4", "https://stream.com/playlist.m3u8"]
-extract_audio_urls(html)   # => ["https://cdn.com/song.mp3"]
-extract_stream_urls(html)  # => ["https://cdn.com/playlist.m3u8", "https://cdn.com/manifest.mpd"]
-```
-
 ### E-commerce Extraction
 
 ```python
@@ -368,25 +362,6 @@ extract_prices("Price: $19.99 and EUR 29.99")
 #     {"raw": "EUR 29.99", "value": 29.99, "currency": "EUR"}]
 
 extract_skus("SKU: ABC-12345")  # => ["ABC-12345"]
-```
-
-### Structured Data Extraction
-
-```python
-from respondo import (
-    extract_canonical_url, extract_og_tags, extract_twitter_cards,
-    extract_schema_org, extract_structured_data
-)
-
-# Individual extractions
-extract_canonical_url(html)   # => "https://example.com/page"
-extract_og_tags(html)         # => {"title": "My Page", "image": "https://..."}
-extract_twitter_cards(html)   # => {"card": "summary", "site": "@example"}
-extract_schema_org(html)      # => [{"@type": "Product", "name": "Widget"}]
-
-# All structured data at once
-extract_structured_data(html)
-# => {"canonical": "...", "og": {...}, "twitter": {...}, "schema_org": [...]}
 ```
 
 ---
@@ -440,6 +415,99 @@ parse_ai_json("Extract person", text, provider="openai", schema=schema)
 | `together` | `TOGETHER_API_KEY` | `Llama-3.3-70B-Instruct-Turbo` |
 | `deepseek` | `DEEPSEEK_API_KEY` | `deepseek-chat` |
 | `perplexity` | `PERPLEXITY_API_KEY` | `sonar` |
+
+---
+
+## All Functions
+
+<details>
+<summary><b>Text Parsing (50+)</b></summary>
+
+- `between`, `betweens`, `between_last`, `between_n`, `between_nested`
+- `before`, `after`, `before_last`, `after_last`
+- `split_first`, `split_last`
+- `line_containing`, `lines_containing`, `lines_between`
+- `around`, `attr`, `attrs`
+- `take`, `take_last`, `skip`, `skip_last`, `truncate`
+- `to_snake_case`, `to_camel_case`, `to_pascal_case`, `to_kebab_case`, `to_title_case`
+- `remove`, `replace_first`, `replace_last`, `pad_left`, `pad_right`, `reverse`
+- `count_occurrences`, `contains_all`, `contains_any`, `starts_with_any`, `ends_with_any`
+- `is_empty`, `is_numeric`
+- `words`, `word_count`, `sentences`, `first_word`, `last_word`, `nth_word`
+- `parse_int`, `parse_float`, `parse_bool`
+- `slugify`, `to_filename`
+- `common_prefix`, `common_suffix`, `similarity`
+- `normalize_space`, `strip_tags`, `unescape_html`, `clean_text`
+- `regex_first`, `regex_all`
+
+</details>
+
+<details>
+<summary><b>Encoding & Crypto (40+)</b></summary>
+
+- `b64_encode`, `b64_decode`, `url_encode`, `url_decode`
+- `hex_encode`, `hex_decode`, `b32_encode`, `b32_decode`
+- `a85_encode`, `a85_decode`, `b85_encode`, `b85_decode`
+- `rot13`, `punycode_encode`, `punycode_decode`
+- `quote`, `unquote`
+- `md5`, `sha1`, `sha256`, `sha512`, `sha224`, `sha384`, `sha3_256`, `sha3_512`
+- `blake2b`, `blake2s`, `crc32`, `adler32`
+- `hmac_sha256`, `hmac_sha512`, `hash_data`
+- `hash_password`, `verify_password`
+- `uuid4`, `uuid5`, `uuid1`
+- `random_bytes`, `random_hex`, `random_string`, `random_urlsafe`
+- `timestamp`, `timestamp_ms`, `from_timestamp`, `to_timestamp`
+
+</details>
+
+<details>
+<summary><b>Extraction (50+)</b></summary>
+
+- `extract_emails`, `extract_urls`, `extract_numbers`
+- `extract_discord_invites`, `extract_telegram_links`, `extract_twitter_links`
+- `extract_youtube_links`, `extract_instagram_links`, `extract_tiktok_links`
+- `extract_reddit_links`, `extract_social_links`
+- `extract_eth_addresses`, `extract_btc_addresses`, `extract_sol_addresses`
+- `extract_ens_names`, `extract_crypto_addresses`
+- `extract_api_keys`, `extract_jwts`, `decode_jwt`, `extract_bearer_tokens`
+- `extract_phone_numbers`, `extract_dates`
+- `extract_ipv4`, `extract_ipv6`, `extract_ips`, `extract_domains`
+- `extract_uuids`, `extract_mac_addresses`
+- `extract_api_endpoints`, `extract_graphql_endpoints`, `extract_websocket_urls`
+- `extract_video_urls`, `extract_audio_urls`, `extract_stream_urls`
+- `extract_prices`, `extract_skus`
+- `extract_canonical_url`, `extract_og_tags`, `extract_twitter_cards`
+- `extract_schema_org`, `extract_structured_data`
+
+</details>
+
+<details>
+<summary><b>HTML & JSON (15+)</b></summary>
+
+- `strip_scripts_styles`, `get_text`, `extract_links`, `extract_forms`
+- `extract_tables`, `extract_meta`, `extract_images`, `html_to_markdown`
+- `json_in_html`, `find_first_json`, `find_all_json`, `json_get`
+
+</details>
+
+<details>
+<summary><b>Bot Protection (20+)</b></summary>
+
+- `extract_recaptcha_sitekey`, `extract_turnstile_sitekey`, `extract_hcaptcha_sitekey`
+- `contains_recaptcha`, `contains_turnstile`, `contains_hcaptcha`
+- `detect_protection_system`, `detect_all_protection_systems`
+- `extract_akamai_sensor_script`, `extract_datadome_object`
+- `extract_incapsula_challenge_marker`, `extract_kasada_endpoints`
+
+</details>
+
+<details>
+<summary><b>Validation (5+)</b></summary>
+
+- `is_valid_email`, `is_valid_url`, `is_valid_json`
+- `is_empty`, `is_numeric`
+
+</details>
 
 ---
 

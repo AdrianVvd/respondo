@@ -1,5 +1,7 @@
 """
-AI-powered text parsing using LLM APIs.
+AI-Powered Text Parsing Module
+
+Provides LLM-powered text parsing using various AI providers.
 Supports OpenAI, Anthropic, Grok, Gemini, Mistral, Groq, Cohere, Together, DeepSeek, Perplexity.
 No external dependencies - uses urllib only.
 """
@@ -8,7 +10,7 @@ import json
 import os
 import urllib.request
 import urllib.error
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 
 def _get_api_key(provider: str) -> str:
@@ -236,7 +238,7 @@ PROVIDERS = {
 }
 
 
-def parse_ai(
+def parse(
     prompt: str,
     text: str,
     provider: str = "openai",
@@ -256,17 +258,6 @@ def parse_ai(
 
     Returns:
         LLM response as string, or empty string on error.
-
-    Environment variables:
-        OPENAI_API_KEY, ANTHROPIC_API_KEY, GROK_API_KEY, GEMINI_API_KEY,
-        MISTRAL_API_KEY, GROQ_API_KEY, COHERE_API_KEY, TOGETHER_API_KEY,
-        DEEPSEEK_API_KEY, PERPLEXITY_API_KEY
-
-    Example:
-        >>> parse_ai("Extract the price", "The item costs $29.99", provider="openai")
-        "$29.99"
-        >>> parse_ai("Summarize", text, provider="groq", model="llama-3.1-8b-instant")
-        "..."
     """
     if not prompt or not text:
         return ""
@@ -285,7 +276,7 @@ def parse_ai(
     return handler(prompt, text, key, model, None)
 
 
-def parse_ai_json(
+def parse_json(
     prompt: str,
     text: str,
     provider: str = "openai",
@@ -302,27 +293,10 @@ def parse_ai_json(
         provider: API provider name
         model: Model name (optional)
         api_key: API key (optional)
-        schema: JSON Schema for structured output (optional).
-                When provided, uses provider's native structured output feature.
+        schema: JSON Schema for structured output (optional)
 
     Returns:
         Parsed JSON (dict/list), or None on error.
-
-    Example:
-        >>> parse_ai_json("Extract name and age as JSON", "John is 30 years old")
-        {"name": "John", "age": 30}
-
-        >>> schema = {
-        ...     "type": "object",
-        ...     "properties": {
-        ...         "name": {"type": "string"},
-        ...         "age": {"type": "integer"}
-        ...     },
-        ...     "required": ["name", "age"],
-        ...     "additionalProperties": False
-        ... }
-        >>> parse_ai_json("Extract info", "John is 30", schema=schema)
-        {"name": "John", "age": 30}
     """
     if not prompt or not text:
         return None
@@ -360,15 +334,28 @@ def parse_ai_json(
         return None
 
 
-def list_providers() -> dict:
+def list_providers() -> Dict[str, str]:
     """
     List available providers and their default models.
 
     Returns:
         Dict mapping provider name to default model.
-
-    Example:
-        >>> list_providers()
-        {"openai": "gpt-4o-mini", "anthropic": "claude-3-5-haiku-latest", ...}
     """
     return {name: config["default_model"] for name, config in PROVIDERS.items()}
+
+
+# Aliases for backward compatibility
+parse_ai = parse
+parse_ai_json = parse_json
+
+
+__all__ = [
+    "parse",
+    "parse_json",
+    "list_providers",
+    # Aliases
+    "parse_ai",
+    "parse_ai_json",
+    # Config
+    "PROVIDERS",
+]
